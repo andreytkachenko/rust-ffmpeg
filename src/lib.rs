@@ -30,6 +30,7 @@ pub use util::option;
 pub use util::picture;
 pub use util::rational::{self, Rational};
 pub use util::time;
+pub use util::hw;
 
 #[cfg(feature = "format")]
 pub mod format;

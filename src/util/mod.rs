@@ -15,6 +15,7 @@ pub mod picture;
 pub mod range;
 pub mod rational;
 pub mod time;
+pub mod hw;
 
 use std::ffi::CStr;
 use std::str::from_utf8_unchecked;

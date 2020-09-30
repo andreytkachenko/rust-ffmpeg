@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
-use super::{Context, Id};
+use super::{Context, Id, decoder};
 use ffi::*;
 use media;
+use super::codec::Codec;
 
 pub struct Parameters {
     ptr: *mut AVCodecParameters,
@@ -41,6 +42,10 @@ impl Parameters {
 
     pub fn id(&self) -> Id {
         unsafe { Id::from((*self.as_ptr()).codec_id) }
+    }
+
+    pub fn codec(&self) -> Option<Codec> {
+        decoder::find(self.id())
     }
 }
 

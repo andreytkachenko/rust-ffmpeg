@@ -8,6 +8,7 @@ use ffi::*;
 use libc::c_int;
 use media;
 use {Codec, Error};
+use hw::HWDeviceContext;
 
 pub struct Context {
     ptr: *mut AVCodecContext,
@@ -37,6 +38,16 @@ impl Context {
                 ptr: avcodec_alloc_context3(ptr::null()),
                 owner: None,
             }
+        }
+    }
+
+    pub fn create_for_codec(codec: Codec) -> Result<Self, Error> {
+        let ptr = unsafe { avcodec_alloc_context3(codec.as_ptr()) };
+        if !ptr.is_null() {
+            Ok(Self {ptr, owner: None})
+        }
+        else {
+            Err(Error::Other{errno: ENOMEM})
         }
     }
 
@@ -111,6 +122,11 @@ impl Context {
                 _ => Ok(()),
             }
         }
+    }
+
+    pub fn set_hw_device_ctx(&mut self, hw_device_ctx :HWDeviceContext) -> Result<(), Error> {
+        unsafe { (*self.as_mut_ptr()).hw_device_ctx = hw_device_ctx.raw_ref()?; };
+        Ok(())
     }
 }
 

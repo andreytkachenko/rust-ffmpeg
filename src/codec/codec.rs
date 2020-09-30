@@ -1,9 +1,13 @@
 use std::ffi::CStr;
 use std::str::from_utf8_unchecked;
+use std::os::raw::c_int;
+use std::ffi::c_void;
+use std::ptr::null_mut;
 
 use super::{Audio, Capabilities, Id, Profile, Video};
 use ffi::*;
 use {media, Error};
+use util::hw::codec_hw_config::CodecHWConfig;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub struct Codec {
@@ -97,6 +101,16 @@ impl Codec {
             }
         }
     }
+
+    pub fn hw_configs(&self) -> HWConfigIter {
+        unsafe {
+            HWConfigIter::new(self.as_ptr())
+        }
+    }
+
+    pub fn codecs() -> CodecIter { // Add features 4+
+        CodecIter::new()
+    }
 }
 
 pub struct ProfileIter {
@@ -123,6 +137,71 @@ impl Iterator for ProfileIter {
             self.ptr = self.ptr.offset(1);
 
             Some(profile)
+        }
+    }
+}
+
+pub struct HWConfigIter {
+    codec: *const AVCodec,
+    index: c_int,
+}
+
+impl HWConfigIter {
+    fn new(codec: *const AVCodec) -> Self {
+        HWConfigIter {
+            codec,
+            index: 0,
+        }
+    }
+}
+
+impl Iterator for HWConfigIter {
+    type Item = CodecHWConfig;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            let cfg = avcodec_get_hw_config(self.codec, self.index);
+            if !cfg.is_null() {
+                self.index += 1;
+                Some(CodecHWConfig::wrap(cfg))
+            }
+            else {
+                None
+            }
+        }
+    }
+}
+
+pub struct CodecIter {
+    opaque: Option<*mut c_void>,
+}
+
+impl CodecIter {
+    fn new() -> Self {
+        CodecIter {opaque: Some(null_mut())}
+    }
+}
+
+
+impl Iterator for CodecIter {
+    type Item = Codec;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if let Some(opaque) = self.opaque.as_mut() {
+                let raw_codec = sys::av_codec_iterate(&mut *opaque) as *mut sys::AVCodec;
+                if !raw_codec.is_null() {
+                    Some(Codec::wrap(raw_codec))
+                }
+                else {
+                    self.opaque = None;
+                    None
+                }
+            }
+            else {
+                None
+            }
+            
         }
     }
 }
