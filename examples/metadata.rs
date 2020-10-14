@@ -7,6 +7,8 @@ fn main() {
 
     match ffmpeg::format::input(&env::args().nth(1).expect("missing file")) {
         Ok(context) => {
+            println!("Source url: {}", context.url());
+
             for (k, v) in context.metadata().iter() {
                 println!("{}: {}", k, v);
             }
@@ -22,11 +24,17 @@ fn main() {
             if let Some(stream) = context.streams().best(ffmpeg::media::Type::Subtitle) {
                 println!("Best subtitle stream index: {}", stream.index());
             }
-
+            
             println!(
-                "duration (seconds): {:.2}",
-                context.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE)
+                "duration (seconds): {}",
+                context.user_duration().map_or("N/A".to_string(), |d| d.as_secs().to_string()) 
             );
+
+            println!("Start realtime: {} sec", 
+                context.start_realtime().map_or("N/A".to_string(), |rt| rt.as_secs().to_string())
+            );
+
+            println!("Position of the first frame: {}", context.start_time_secs().map_or("N/A".to_string(), |t| t.to_string()));
 
             for stream in context.streams() {
                 println!("stream index {}:", stream.index());

@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::mem::size_of;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
+use std::time::Duration;
 
 use libc;
 
@@ -149,6 +150,12 @@ impl Output {
     pub fn set_metadata(&mut self, dictionary: Dictionary) {
         unsafe {
             (*self.as_mut_ptr()).metadata = dictionary.disown();
+        }
+    }
+
+    pub fn set_start_realtime(&mut self, start_realtime: Option<Duration>) {
+        unsafe {
+            (*self.as_mut_ptr()).start_time_realtime = start_realtime.map_or(AV_NOPTS_VALUE, |d| d.as_micros() as i64);
         }
     }
 }

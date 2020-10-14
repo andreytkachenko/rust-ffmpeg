@@ -2,6 +2,9 @@ use std::fmt;
 use std::mem;
 use std::ptr;
 use std::rc::Rc;
+use std::time::Duration;
+use std::str::from_utf8_unchecked;
+use std::ffi::CStr;
 
 use super::destructor::{self, Destructor};
 use ffi::*;
@@ -80,8 +83,42 @@ impl Context {
         unsafe { (*self.as_ptr()).bit_rate }
     }
 
+    /// Duration in AV_TIME_BASE fractional seconds
     pub fn duration(&self) -> i64 {
         unsafe { (*self.as_ptr()).duration }
+    }
+
+    pub fn user_duration(&self) -> Option<Duration> {
+        match self.duration() {
+            AV_NOPTS_VALUE => None,
+            0 => None,
+            d =>  Some(Duration::from_secs_f64(d as f64 / AV_TIME_BASE as f64)),
+        }
+    }
+
+    pub fn start_realtime(&self) -> Option<Duration> {
+        let realtime = unsafe {(*self.as_ptr()).start_time_realtime};
+        match realtime {
+            AV_NOPTS_VALUE => None,
+            t => Some(Duration::from_micros(t as u64))
+        }
+    }
+
+    /// Position of the first frame of the component, in AV_TIME_BASE fractional seconds
+    pub fn start_time(&self) -> i64 {
+        unsafe { (*self.as_ptr()).start_time }
+    }
+
+    pub fn start_time_secs(&self) -> Option<f64> {
+        match self.start_time() {
+            AV_NOPTS_VALUE => None,
+            0 => Some(0.0),
+            st => Some(st as f64 / AV_TIME_BASE as f64),
+        }
+    }
+
+    pub fn url(&self) -> &str {
+        unsafe { from_utf8_unchecked(CStr::from_ptr((*self.as_ptr()).url).to_bytes()) }
     }
 
     #[inline]

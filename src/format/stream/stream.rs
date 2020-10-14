@@ -4,6 +4,7 @@ use ffi::*;
 use format::context::common::Context;
 use libc::c_int;
 use {DictionaryRef, Discard, Rational};
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct Stream<'a> {
@@ -48,12 +49,36 @@ impl<'a> Stream<'a> {
         unsafe { (*self.as_ptr()).start_time }
     }
 
+    pub fn start_time_secs(&self) -> Option<f64> {
+        match self.start_time() {
+            AV_NOPTS_VALUE => None,
+            0 => Some(0.0),
+            st => Some(st as f64 * f64::from(self.time_base())),
+        }
+    }
+
+    ///Decoding: duration of the stream, in stream time base. 
     pub fn duration(&self) -> i64 {
         unsafe { (*self.as_ptr()).duration }
     }
 
+    pub fn user_duration(&self) -> Option<Duration> {
+        match self.duration() {
+            AV_NOPTS_VALUE => None,
+            0 => None,
+            d =>  Some(Duration::from_secs_f64(d as f64 * f64::from(self.time_base()))),
+        }
+    }
+ 
     pub fn frames(&self) -> i64 {
         unsafe { (*self.as_ptr()).nb_frames }
+    }
+
+    pub fn user_frames(&self) -> Option<i64> {
+        match self.frames() {
+            0 => None,
+            f => Some(f),
+        }
     }
 
     pub fn disposition(&self) -> Disposition {
